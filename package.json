@@ -1,6 +1,6 @@
 {
   "name": "shared-supabase-auth",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Shared Supabase aal2 auth gate (readAal, requireVerifiedUser, createAuthProxy) and login/MFA flow (useAuthFlow) for the Next.js personal apps",
   "type": "module",
   "main": "dist/index.js",

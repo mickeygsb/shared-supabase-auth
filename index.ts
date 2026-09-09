@@ -33,15 +33,17 @@ export type RequireVerifiedUserResult =
   | { user: null; reason: RequireVerifiedUserReason };
 
 // The single gate every protected surface goes through: signed in, allowed
-// into this specific app, AND the session has cleared the second factor. A
-// password-only session is aal1 and does not count. `supabase` is a
-// request-scoped server client the caller already created — each app wires
-// that to its own Supabase project. Pass `{ app: "accounts" }` (etc.) once
-// multiple apps share one Supabase project's auth.users table, so a verified
-// user from one app can't reach another app's data.
+// into this specific app, AND (unless the app has explicitly opted out via
+// `requireAal2: false` — for one that hasn't rolled out its own MFA UI yet)
+// the session has cleared the second factor. A password-only session is aal1
+// and does not count. `supabase` is a request-scoped server client the
+// caller already created — each app wires that to its own Supabase project.
+// Pass `{ app: "accounts" }` (etc.) once multiple apps share one Supabase
+// project's auth.users table, so a verified user from one app can't reach
+// another app's data.
 export async function requireVerifiedUser(
   supabase: SupabaseClient,
-  { app }: { app?: string } = {},
+  { app, requireAal2 = true }: { app?: string; requireAal2?: boolean } = {},
 ): Promise<RequireVerifiedUserResult> {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return { user: null, reason: "unauthenticated" };
@@ -50,9 +52,11 @@ export async function requireVerifiedUser(
     return { user: null, reason: "forbidden" };
   }
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (readAal(session?.access_token) !== "aal2") {
-    return { user: null, reason: "mfa_required" };
+  if (requireAal2) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (readAal(session?.access_token) !== "aal2") {
+      return { user: null, reason: "mfa_required" };
+    }
   }
 
   return { user, reason: null };
